@@ -83,6 +83,7 @@ namespace
 } // namespace anonymous
 
 PCL::PCL(const Int2 &paperSize)
+    : loadAllFileBrowser_(ImGuiFileBrowserFlags_MultipleSelection)
 {
     paperSize_ = paperSize;
 
@@ -96,6 +97,7 @@ PCL::PCL(const Int2 &paperSize)
 
     perspectiveCamera_ = false;
     perspectiveCameraZ_ = 1;
+    exposure_ = 1;
 
     envLight_ = { 0, 0, 0 };
 
@@ -112,12 +114,15 @@ PCL::PCL(const Int2 &paperSize)
         paperDistance_ * paperSize_.x / paperWidth_,
         spp_);
     accumulator_ = std::make_unique<Accumulator>(paperSize_.x, paperSize_.y);
+    toneMapper_ = std::make_unique<ToneMapper>(paperSize_.x, paperSize_.y);
 
     monitor_->attach<LayerModification>(this);
     monitor_->attach<LightModification>(this);
 
     tracer_->setEnvLight(envLight_);
     tracer_->setEyeZ(perspectiveCamera_ ? -perspectiveCameraZ_ : 1);
+
+    toneMapper_->setExposure(exposure_);
 
     addNewPaper("");
 }
@@ -213,28 +218,24 @@ void PCL::updateMaterial()
 
 void PCL::displaySettingPanel()
 {
-    static ImGui::FileBrowser loadAllFileBrowser(
-        ImGuiFileBrowserFlags_MultipleSelection);
-    static ImGui::FileBrowser layerFileBrowser;
-
     if(ImGui::Button(PCL_LANG_ADD_LAYER))
         addNewPaper("");
 
     ImGui::SameLine();
 
     if(ImGui::Button(PCL_LANG_LOAD_ALL))
-        loadAllFileBrowser.Open();
+        loadAllFileBrowser_.Open();
 
     showTip(PCL_LANG_LOAD_ALL_TIPS);
 
-    loadAllFileBrowser.Display();
+    loadAllFileBrowser_.Display();
 
-    if(loadAllFileBrowser.HasSelected())
+    if(loadAllFileBrowser_.HasSelected())
     {
-        layerFileBrowser.SetPwd(loadAllFileBrowser.GetPwd());
+        layerFileBrowser_.SetPwd(loadAllFileBrowser_.GetPwd());
 
-        const auto selected = loadAllFileBrowser.GetMultiSelected();
-        loadAllFileBrowser.ClearSelected();
+        const auto selected = loadAllFileBrowser_.GetMultiSelected();
+        loadAllFileBrowser_.ClearSelected();
         loadAllLayers(selected);
     }
 
@@ -268,7 +269,7 @@ void PCL::displaySettingPanel()
 
         if(ImGui::Button(PCL_LANG_BROWSE))
         {
-            layerFileBrowser.Open();
+            layerFileBrowser_.Open();
             editPaperIdx = int(i);
         }
 
@@ -379,13 +380,13 @@ void PCL::displaySettingPanel()
         ImGui::EndPopup();
     }
 
-    layerFileBrowser.Display();
-    if(layerFileBrowser.HasSelected() && editPaperIdx >= 0)
+    layerFileBrowser_.Display();
+    if(layerFileBrowser_.HasSelected() && editPaperIdx >= 0)
     {
-        loadAllFileBrowser.SetPwd(layerFileBrowser.GetPwd());
+        loadAllFileBrowser_.SetPwd(layerFileBrowser_.GetPwd());
 
-        const auto filename = layerFileBrowser.GetSelected();
-        layerFileBrowser.ClearSelected();
+        const auto filename = layerFileBrowser_.GetSelected();
+        layerFileBrowser_.ClearSelected();
         setPaperFilename(
             static_cast<size_t>(editPaperIdx), filename.string());
     }
@@ -397,7 +398,7 @@ void PCL::displaySettingPanel()
     if(ImGui::Button(PCL_LANG_BROWSE_LIGHT))
     {
         editPaperIdx = -1;
-        layerFileBrowser.Open();
+        layerFileBrowser_.Open();
     }
 
     ImGui::SameLine();
@@ -411,10 +412,10 @@ void PCL::displaySettingPanel()
         ImGui::EndTooltip();
     }
 
-    if(layerFileBrowser.HasSelected() && editPaperIdx < 0)
+    if(layerFileBrowser_.HasSelected() && editPaperIdx < 0)
     {
-        const auto filename = layerFileBrowser.GetSelected();
-        layerFileBrowser.ClearSelected();
+        const auto filename = layerFileBrowser_.GetSelected();
+        layerFileBrowser_.ClearSelected();
         setLightFilename(filename.string());
     }
 
@@ -469,41 +470,64 @@ void PCL::displaySettingPanel()
         accumulator_->clearHistory();
     }
 
+    if(ImGui::SliderFloat(PCL_LANG_EXPOSURE, &exposure_, 0, 5))
+    {
+        toneMapper_->setExposure(exposure_);
+        toneMapper_->render(accumulator_->getAccumulatedOutput());
+    }
+
     // material
 
-    ImGui::Separator();
+    if(ImGui::TreeNode(PCL_LANG_MATERIAL))
+    {
+        bool materialChanged = false;
+        materialChanged |= ImGui::SliderFloat(
+            PCL_LANG_FRONT_G, &jensenParams_.gf, -1, 1);
+        materialChanged |= ImGui::SliderFloat(
+            PCL_LANG_BACK_G, &jensenParams_.gb, -1, 1);
+        materialChanged |= ImGui::SliderFloat(
+            PCL_LANG_FRONT_G_WEIGHT, &jensenParams_.wf, 0, 1);
+        materialChanged |= ImGui::SliderFloat(
+            PCL_LANG_FRONT_IOR, &jensenParams_.frontEta, 1.01f, 3);
+        materialChanged |= ImGui::SliderFloat(
+            PCL_LANG_BACK_IOR, &jensenParams_.backEta, 1.01f, 3);
+        materialChanged |= ImGui::SliderFloat(
+            PCL_LANG_FRONT_ROUGH, &jensenParams_.frontM, 0, 1);
+        materialChanged |= ImGui::SliderFloat(
+            PCL_LANG_BACK_ROUGH, &jensenParams_.backM, 0, 1);
+        materialChanged |= ImGui::InputFloat(
+            PCL_LANG_PAPER_THICKNESS, &jensenParams_.d, 0.01f, 0.1f, 6);
+        materialChanged |= ImGui::InputFloat(
+            PCL_LANG_SIGMA_S, &jensenParams_.sigmaS, 1, 10, 6);
+        materialChanged |= ImGui::InputFloat(
+            PCL_LANG_SIGMA_A, &jensenParams_.sigmaA, 0.001f, 0.1f, 6);
+        materialChanged |= ImGui::ColorEdit3(
+            PCL_LANG_DIF_ALBEDO, &jensenParams_.diffusionAlbedo.x);
 
-    bool materialChanged = false;
-    materialChanged |= ImGui::SliderFloat(PCL_LANG_FRONT_G, &jensenParams_.gf, -1, 1);
-    materialChanged |= ImGui::SliderFloat(PCL_LANG_BACK_G, &jensenParams_.gb, -1, 1);
-    materialChanged |= ImGui::SliderFloat(PCL_LANG_FRONT_G_WEIGHT, &jensenParams_.wf, 0, 1);
-    materialChanged |= ImGui::SliderFloat(PCL_LANG_FRONT_IOR, &jensenParams_.frontEta, 1.01f, 3);
-    materialChanged |= ImGui::SliderFloat(PCL_LANG_BACK_IOR, &jensenParams_.backEta, 1.01f, 3);
-    materialChanged |= ImGui::SliderFloat(PCL_LANG_FRONT_ROUGH, &jensenParams_.frontM, 0, 1);
-    materialChanged |= ImGui::SliderFloat(PCL_LANG_BACK_ROUGH, &jensenParams_.backM, 0, 1);
-    materialChanged |= ImGui::InputFloat(PCL_LANG_PAPER_THICKNESS, &jensenParams_.d, 0.01f, 0.1f, 6);
-    materialChanged |= ImGui::InputFloat(PCL_LANG_SIGMA_S, &jensenParams_.sigmaS, 1, 10, 6);
-    materialChanged |= ImGui::InputFloat(PCL_LANG_SIGMA_A, &jensenParams_.sigmaA, 0.001f, 0.1f, 6);
-    materialChanged |= ImGui::ColorEdit3(PCL_LANG_DIF_ALBEDO, &jensenParams_.diffusionAlbedo.x);
+        if(materialChanged)
+            updateMaterial();
 
-    if(materialChanged)
-        updateMaterial();
+        ImGui::TreePop();
+    }
 
     // spp
 
-    ImGui::Separator();
-
-    if(ImGui::SliderInt(PCL_LANG_GPU_PERFORMANCE, &spp_, 1, 8, ""))
+    if(ImGui::TreeNode(PCL_LANG_SPP))
     {
-        tracer_->setSPP(spp_);
-        accumulator_->clearHistory();
-    }
-    ImGui::SameLine();
-    ImGui::Text("%d\n", spp_);
+        if(ImGui::SliderInt(PCL_LANG_GPU_PERFORMANCE, &spp_, 1, 8, ""))
+        {
+            tracer_->setSPP(spp_);
+            accumulator_->clearHistory();
+        }
+        ImGui::SameLine();
+        ImGui::Text("%d\n", spp_);
 
-    ImGui::SliderInt(PCL_LANG_RENDER_QUALITY, &maxAccuFrames_, 1, 4096, "");
-    ImGui::SameLine();
-    ImGui::Text("%d\n", maxAccuFrames_);
+        ImGui::SliderInt(PCL_LANG_RENDER_QUALITY, &maxAccuFrames_, 1, 4096, "");
+        ImGui::SameLine();
+        ImGui::Text("%d\n", maxAccuFrames_);
+
+        ImGui::TreePop();
+    }
 }
 
 void PCL::displayRenderPanel()
@@ -512,6 +536,7 @@ void PCL::displayRenderPanel()
     {
         tracer_->render();
         accumulator_->addNewFrame(tracer_->getOutput());
+        toneMapper_->render(accumulator_->getAccumulatedOutput());
     }
 
     const auto [panelW, panelH] = ImGui::GetContentRegionAvail();
@@ -519,13 +544,11 @@ void PCL::displayRenderPanel()
     ImVec2 size;
     if(paperSize_.x / panelW < paperSize_.y / panelH)
     {
-        //size.y = (std::max)(1.0f, panelH - 20);
         size.y = (std::min)(panelH, static_cast<float>(paperSize_.y));
         size.x = size.y * paperSize_.x / paperSize_.y;
     }
     else
     {
-        //size.x = (std::max)(1.0f, panelW - 20);
         size.x = (std::min)(panelW, static_cast<float>(paperSize_.x));
         size.y = size.x * paperSize_.y / paperSize_.x;
     }
@@ -536,7 +559,7 @@ void PCL::displayRenderPanel()
     };
 
     ImGui::SetCursorPos(pos);
-    ImGui::Image(accumulator_->getAccumulatedOutput().Get(), size);
+    ImGui::Image(toneMapper_->getOutput().Get(), size);
 }
 
 void PCL::handle(const LayerModification &event)
@@ -738,6 +761,7 @@ void PCL::setPaperSize(int width, int height)
         });
     tracer_->setOutputSize({ width, height });
     accumulator_->setSize(width, height);
+    toneMapper_->setSize(width, height);
 
     for(auto &p : papers_)
     {

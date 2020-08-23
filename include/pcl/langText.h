@@ -32,6 +32,9 @@
 
 #define PCL_LANG_USE_PERSPECTIVE      "perspective"
 #define PCL_LANG_PERSPECTIVE_DISTANCE "camera distance"
+#define PCL_LANG_EXPOSURE             "exposure"
+
+#define PCL_LANG_MATERIAL "paper material"
 
 #define PCL_LANG_FRONT_G "front Henyey-Greenstein g"
 #define PCL_LANG_BACK_G  "back  Henyey-Greenstein g"
@@ -44,6 +47,8 @@
 #define PCL_LANG_SIGMA_S "sigma_s"
 #define PCL_LANG_SIGMA_A "sigma_a"
 #define PCL_LANG_DIF_ALBEDO "diffusion albedo"
+
+#define PCL_LANG_SPP "sampling"
 
 #define PCL_LANG_GPU_PERFORMANCE "GPU performance"
 #define PCL_LANG_RENDER_QUALITY  "render quality"
@@ -80,6 +85,9 @@
 
 #define PCL_LANG_USE_PERSPECTIVE      u8"使用透视摄像机"
 #define PCL_LANG_PERSPECTIVE_DISTANCE u8"透视投影距离"
+#define PCL_LANG_EXPOSURE             u8"曝光度"
+
+#define PCL_LANG_MATERIAL u8"纸张材质"
 
 #define PCL_LANG_FRONT_G         u8"正面相函数不对称性"
 #define PCL_LANG_BACK_G          u8"背面相函数不对称性"
@@ -92,6 +100,8 @@
 #define PCL_LANG_SIGMA_S         u8"内部散射率"
 #define PCL_LANG_SIGMA_A         u8"内部吸收率"
 #define PCL_LANG_DIF_ALBEDO      u8"Diffusion Albedo"
+
+#define PCL_LANG_SPP u8"采样设置"
 
 #define PCL_LANG_GPU_PERFORMANCE u8"GPU性能"
 #define PCL_LANG_RENDER_QUALITY  u8"绘制质量"

@@ -10,7 +10,6 @@ PCLP is written with C++ and DirectX 11, so it only runs on Windows.
 
 ## TODO
 
-- [ ] Tone mapping
 - [ ] Paper material model verification
 - [ ] Builtin paper materials
 - [ ] User manual

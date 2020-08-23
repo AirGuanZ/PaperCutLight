@@ -15,8 +15,7 @@ RWTexture2D<float4> Output;
 [numthreads(THREAD_GROUP_WIDTH, THREAD_GROUP_HEIGHT, 1)]
 void main(int3 threadIdx : SV_DispatchThreadID)
 {
-    float4 history  = pow(History[threadIdx.xy], 2.2);
+    float4 history  = History[threadIdx.xy];
     float4 newFrame = NewFrame[threadIdx.xy];
-    float4 linearVal = HistoryWeight * history + NewFrameWeight * newFrame;
-    Output[threadIdx.xy] = pow(linearVal, 1 / 2.2);
+    Output[threadIdx.xy] = HistoryWeight * history + NewFrameWeight * newFrame;
 }

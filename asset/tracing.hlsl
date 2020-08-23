@@ -105,8 +105,9 @@ float4 trace(int3 threadIndex, inout uint rngState)
         {
             if(scatterDepth > 0)
             {
-                inct.x = max(0, min(OutputWidth, inct.x));
-                inct.y = max(0, min(OutputHeight, inct.y));
+                /*inct.x = max(0, min(OutputWidth, inct.x));
+                inct.y = max(0, min(OutputHeight, inct.y));*/
+                return float4(0, 0, 0, 1);
             }
             else
             {

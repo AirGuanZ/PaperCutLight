@@ -3,6 +3,7 @@
 #include <agz/utility/graphics_api.h>
 
 #include <pcl/renderer/accumulator.h>
+#include <pcl/renderer/toneMapper.h>
 #include <pcl/renderer/tracer.h>
 #include <pcl/layerMonitor.h>
 
@@ -95,6 +96,7 @@ private:
 
     bool perspectiveCamera_;
     float perspectiveCameraZ_;
+    float exposure_;
 
     Float3 envLight_;
 
@@ -112,6 +114,10 @@ private:
 
     std::unique_ptr<Tracer>      tracer_;
     std::unique_ptr<Accumulator> accumulator_;
+    std::unique_ptr<ToneMapper>  toneMapper_;
+
+    ImGui::FileBrowser loadAllFileBrowser_;
+    ImGui::FileBrowser layerFileBrowser_;
 };
 
 PCL_END

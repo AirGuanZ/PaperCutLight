@@ -26,22 +26,16 @@ ComPtr<ID3D11ShaderResourceView> loadJensenRhoDt()
     subrscData.SysMemPitch      = 64 * sizeof(float);
     subrscData.SysMemSlicePitch = 64 * 64 * sizeof(float);
 
-    ComPtr<ID3D11Texture3D> tex;
-    if(FAILED(d3d11::gDevice->CreateTexture3D(
-        &texDesc, &subrscData, tex.GetAddressOf())))
-        throw PCLException("failed to create jensen rho dt texture");
-
+    auto tex = d3d11::device.createTex3D(texDesc, &subrscData);
+    
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     srvDesc.Format                    = DXGI_FORMAT_R32_FLOAT;
     srvDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE3D;
     srvDesc.Texture3D.MipLevels       = 1;
     srvDesc.Texture3D.MostDetailedMip = 0;
 
-    ComPtr<ID3D11ShaderResourceView> srv;
-    if(FAILED(d3d11::gDevice->CreateShaderResourceView(
-        tex.Get(), &srvDesc, srv.GetAddressOf())))
-        throw PCLException("failed to create jensen rho dt srv");
-
+    auto srv = d3d11::device.createSRV(tex, srvDesc);
+    
     return srv;
 }
 

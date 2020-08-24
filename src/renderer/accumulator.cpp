@@ -47,7 +47,7 @@ void Accumulator::addNewFrame(ComPtr<ID3D11ShaderResourceView> srv)
 
     shader_.bind();
     rscMgr_.bind();
-    d3d11::gDeviceContext->Dispatch(width_, height_, 1);
+    d3d11::deviceContext.dispatch(width_, height_);
     rscMgr_.unbind();
     shader_.unbind();
 
@@ -89,13 +89,8 @@ void Accumulator::initPingPongTextures()
     texDesc.CPUAccessFlags = 0;
     texDesc.MiscFlags      = 0;
 
-    ComPtr<ID3D11Texture2D> historyTex, outputTex;
-    if(FAILED(d3d11::gDevice->CreateTexture2D(
-        &texDesc, nullptr, historyTex.GetAddressOf())))
-        throw PCLException("Accumulator: failed to create history texture");
-    if(FAILED(d3d11::gDevice->CreateTexture2D(
-        &texDesc, nullptr, outputTex.GetAddressOf())))
-        throw PCLException("Accumulator: failed to create output texture");
+    auto historyTex = d3d11::device.createTex2D(texDesc, nullptr);
+    auto outputTex  = d3d11::device.createTex2D(texDesc, nullptr);
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     srvDesc.Format                    = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -103,26 +98,16 @@ void Accumulator::initPingPongTextures()
     srvDesc.Texture2D.MipLevels       = 1;
     srvDesc.Texture2D.MostDetailedMip = 0;
 
-    ComPtr<ID3D11ShaderResourceView> historySRV, outputSRV;
-    if(FAILED(d3d11::gDevice->CreateShaderResourceView(
-        historyTex.Get(), &srvDesc, historySRV.GetAddressOf())))
-        throw PCLException("Accumulator: failed to create history srv");
-    if(FAILED(d3d11::gDevice->CreateShaderResourceView(
-        outputTex.Get(), &srvDesc, outputSRV.GetAddressOf())))
-        throw PCLException("Accumulator: failed to create output srv");
+    auto historySRV = d3d11::device.createSRV(historyTex, srvDesc);
+    auto outputSRV  = d3d11::device.createSRV(outputTex, srvDesc);
 
     D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
     uavDesc.Format             = DXGI_FORMAT_R32G32B32A32_FLOAT;
     uavDesc.ViewDimension      = D3D11_UAV_DIMENSION_TEXTURE2D;
     uavDesc.Texture2D.MipSlice = 0;
 
-    ComPtr<ID3D11UnorderedAccessView> historyUAV, outputUAV;
-    if(FAILED(d3d11::gDevice->CreateUnorderedAccessView(
-        historyTex.Get(), &uavDesc, historyUAV.GetAddressOf())))
-        throw PCLException("Accumulator: failed to create history uav");
-    if(FAILED(d3d11::gDevice->CreateUnorderedAccessView(
-        outputTex.Get(), &uavDesc, outputUAV.GetAddressOf())))
-        throw PCLException("Accumulator: failed to create output uav");
+    auto historyUAV = d3d11::device.createUAV(historyTex, uavDesc);
+    auto outputUAV  = d3d11::device.createUAV(outputTex,  uavDesc);
 
     accumulated_ = { std::move(historySRV), std::move(historyUAV) };
     nextTarget_  = { std::move(outputSRV),  std::move(outputUAV)  };

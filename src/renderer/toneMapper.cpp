@@ -34,7 +34,7 @@ void ToneMapper::render(ComPtr<ID3D11ShaderResourceView> hdrImg)
 
     shader_.bind();
     rscMgr_.bind();
-    d3d11::gDeviceContext->Dispatch(width_, height_, 1);
+    d3d11::deviceContext.dispatch(width_, height_);
     rscMgr_.unbind();
     shader_.unbind();
 }
@@ -61,31 +61,22 @@ void ToneMapper::initOutputTexture()
     texDesc.CPUAccessFlags = 0;
     texDesc.MiscFlags      = 0;
 
-    ComPtr<ID3D11Texture2D> tex;
-    PCL_THROW_IF_FAILED(
-        d3d11::gDevice->CreateTexture2D(&texDesc, nullptr, tex.GetAddressOf()),
-        "failed to create tone mapping output texture");
-
+    auto tex = d3d11::device.createTex2D(texDesc, nullptr);
+    
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     srvDesc.Format                    = DXGI_FORMAT_R32G32B32A32_FLOAT;
     srvDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Texture2D.MipLevels       = 1;
     srvDesc.Texture2D.MostDetailedMip = 0;
 
-    ComPtr<ID3D11ShaderResourceView> srv;
-    PCL_THROW_IF_FAILED(d3d11::gDevice->CreateShaderResourceView(
-        tex.Get(), &srvDesc, srv.GetAddressOf()),
-        "failed to create tone mapping srv");
+    auto srv = d3d11::device.createSRV(tex, srvDesc);
 
     D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
     uavDesc.Format             = DXGI_FORMAT_R32G32B32A32_FLOAT;
     uavDesc.ViewDimension      = D3D11_UAV_DIMENSION_TEXTURE2D;
     uavDesc.Texture2D.MipSlice = 0;
 
-    ComPtr<ID3D11UnorderedAccessView> uav;
-    PCL_THROW_IF_FAILED(d3d11::gDevice->CreateUnorderedAccessView(
-        tex.Get(), &uavDesc, uav.GetAddressOf()),
-        "failed to create tone mapping uav");
+    auto uav = d3d11::device.createUAV(tex, uavDesc);
 
     rscMgr_.getUnorderedAccessViewSlot<d3d11::CS>("Output")
         ->setUnorderedAccessView(uav);

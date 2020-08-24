@@ -51,7 +51,7 @@ void Tracer::setSPP(int spp) noexcept
 void Tracer::setPaperData(int z, const Texel *data)
 {
     const UINT subrscIdx = D3D11CalcSubresource(0, static_cast<UINT>(z), 1);
-    d3d11::gDeviceContext->UpdateSubresource(
+    d3d11::deviceContext->UpdateSubresource(
         papersTex_.Get(), subrscIdx, nullptr,
         data, sizeof(Texel) * paperSize_.x, 0);
 }
@@ -70,7 +70,7 @@ void Tracer::setPaperDiffuse(int z, float reflectionRatio)
     box.front  = 0;
     box.back   = 1;
 
-    d3d11::gDeviceContext->UpdateSubresource(
+    d3d11::deviceContext->UpdateSubresource(
         paperMaterialsBuf_.Get(), 0, &box, &paperMaterial, 0, 0);
 }
 
@@ -167,7 +167,7 @@ void Tracer::setPaperJensen(
     box.front = 0;
     box.back = 1;
 
-    d3d11::gDeviceContext->UpdateSubresource(
+    d3d11::deviceContext->UpdateSubresource(
         paperMaterialsBuf_.Get(), 0, &box, &material, 0, 0);
 }
 
@@ -182,7 +182,7 @@ void Tracer::setBackLightRadiance(const agz::math::color3f *data)
         initData[j + 2] = data[i].b;
         initData[j + 3] = 0;
     }
-    d3d11::gDeviceContext->UpdateSubresource(
+    d3d11::deviceContext->UpdateSubresource(
         backLightTex_.Get(), 0, nullptr,
         initData.data(), sizeof(float) * 4 * paperSize_.x, 0);
 }
@@ -225,8 +225,9 @@ void Tracer::render() const
     tracingShader_.bind();
     tracingResources_.bind();
 
-    d3d11::gDeviceContext->Dispatch(
-        static_cast<UINT>(outputSize_.x), static_cast<UINT>(outputSize_.y), 1);
+    d3d11::deviceContext.dispatch(
+        static_cast<UINT>(outputSize_.x),
+        static_cast<UINT>(outputSize_.y));
 
     tracingResources_.unbind();
     tracingShader_.unbind();
@@ -265,20 +266,14 @@ void Tracer::initRenderTarget()
     texDesc.CPUAccessFlags     = 0;
     texDesc.MiscFlags          = 0;
 
-    ComPtr<ID3D11Texture2D> tex;
-    if(FAILED(d3d11::gDevice->CreateTexture2D(
-        &texDesc, nullptr, tex.GetAddressOf())))
-        throw PCLException("Tracer: failed to create output texture");
+    auto tex = d3d11::device.createTex2D(texDesc, nullptr);
 
     D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
     uavDesc.Format             = DXGI_FORMAT_R32G32B32A32_FLOAT;
     uavDesc.ViewDimension      = D3D11_UAV_DIMENSION_TEXTURE2D;
     uavDesc.Texture2D.MipSlice = 0;
 
-    ComPtr<ID3D11UnorderedAccessView> uav;
-    if(FAILED(d3d11::gDevice->CreateUnorderedAccessView(
-        tex.Get(), &uavDesc, uav.GetAddressOf())))
-        throw PCLException("Tracer: failed to create output uav");
+    auto uav = d3d11::device.createUAV(tex, uavDesc);
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     srvDesc.Format                    = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -286,10 +281,7 @@ void Tracer::initRenderTarget()
     srvDesc.Texture2D.MipLevels       = 1;
     srvDesc.Texture2D.MostDetailedMip = 0;
 
-    ComPtr<ID3D11ShaderResourceView> srv;
-    if(FAILED(d3d11::gDevice->CreateShaderResourceView(
-        tex.Get(), &srvDesc, srv.GetAddressOf())))
-        throw PCLException("failed to create output srv");
+    auto srv = d3d11::device.createSRV(tex, srvDesc);
 
     outputTex_.Swap(tex);
     outputUAV_.Swap(uav);
@@ -315,11 +307,8 @@ void Tracer::initPaperTexture()
     texDesc.CPUAccessFlags = 0;
     texDesc.MiscFlags      = 0;
 
-    ComPtr<ID3D11Texture2D> tex;
-    if(FAILED(d3d11::gDevice->CreateTexture2D(
-        &texDesc, nullptr, tex.GetAddressOf())))
-        throw PCLException("Tracer: failed to create paper texture");
-
+    auto tex = d3d11::device.createTex2D(texDesc, nullptr);
+    
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     srvDesc.Format                         = DXGI_FORMAT_R8G8B8A8_UINT;
     srvDesc.ViewDimension                  = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
@@ -328,10 +317,7 @@ void Tracer::initPaperTexture()
     srvDesc.Texture2DArray.FirstArraySlice = 0;
     srvDesc.Texture2DArray.ArraySize       = static_cast<UINT>(paperSize_.z);
 
-    ComPtr<ID3D11ShaderResourceView> srv;
-    if(FAILED(d3d11::gDevice->CreateShaderResourceView(
-        tex.Get(), &srvDesc, srv.GetAddressOf())))
-        throw PCLException("Tracer: failed to create paper srv");
+    auto srv = d3d11::device.createSRV(tex, srvDesc);
 
     papersTex_.Swap(tex);
     papersSRV_.Swap(srv);
@@ -350,10 +336,7 @@ void Tracer::initPaperMaterials()
     bufDesc.MiscFlags           = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
     bufDesc.StructureByteStride = sizeof(PaperMaterial);
 
-    ComPtr<ID3D11Buffer> buf;
-    if(FAILED(d3d11::gDevice->CreateBuffer(
-        &bufDesc, nullptr, buf.GetAddressOf())))
-        throw PCLException("Tracer: failed to create paper material buf");
+    auto buf = d3d11::device.createBuffer(bufDesc);
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     srvDesc.Format               = DXGI_FORMAT_UNKNOWN;
@@ -361,10 +344,7 @@ void Tracer::initPaperMaterials()
     srvDesc.Buffer.FirstElement  = 0;
     srvDesc.Buffer.NumElements   = static_cast<UINT>(paperSize_.z);
 
-    ComPtr<ID3D11ShaderResourceView> srv;
-    if(FAILED(d3d11::gDevice->CreateShaderResourceView(
-        buf.Get(), &srvDesc, srv.GetAddressOf())))
-        throw PCLException("Tracer: failed to create paper material srv");
+    auto srv = d3d11::device.createSRV(buf, srvDesc);
 
     paperMaterialsBuf_.Swap(buf);
     paperMaterialsSRV_.Swap(srv);
@@ -384,10 +364,7 @@ void Tracer::initBackLightTexture()
     texDesc.CPUAccessFlags = 0;
     texDesc.MiscFlags      = 0;
 
-    ComPtr<ID3D11Texture2D> tex;
-    if(FAILED(d3d11::gDevice->CreateTexture2D(
-        &texDesc, nullptr, tex.GetAddressOf())))
-        throw PCLException("Tracer: failed to create backlight texture");
+    auto tex = d3d11::device.createTex2D(texDesc);
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     srvDesc.Format                    = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -395,10 +372,7 @@ void Tracer::initBackLightTexture()
     srvDesc.Texture2D.MipLevels       = 1;
     srvDesc.Texture2D.MostDetailedMip = 0;
 
-    ComPtr<ID3D11ShaderResourceView> srv;
-    if(FAILED(d3d11::gDevice->CreateShaderResourceView(
-        tex.Get(), &srvDesc, srv.GetAddressOf())))
-        throw PCLException("Tracer: failed to create backlight srv");
+    auto srv = d3d11::device.createSRV(tex, srvDesc);
 
     backLightTex_.Swap(tex);
     backLightSRV_.Swap(srv);
@@ -429,20 +403,14 @@ void Tracer::initRNGTexture()
                                                   * texDesc.Width);
     subrscData.SysMemSlicePitch = 0;
 
-    ComPtr<ID3D11Texture2D> tex;
-    if(FAILED(d3d11::gDevice->CreateTexture2D(
-        &texDesc, &subrscData, tex.GetAddressOf())))
-        throw PCLException("Tracer: failed to create RNG texture");
+    auto tex = d3d11::device.createTex2D(texDesc, &subrscData);
 
     D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
     uavDesc.Format             = DXGI_FORMAT_R32_UINT;
     uavDesc.ViewDimension      = D3D11_UAV_DIMENSION_TEXTURE2D;
     uavDesc.Texture2D.MipSlice = 0;
 
-    ComPtr<ID3D11UnorderedAccessView> uav;
-    if(FAILED(d3d11::gDevice->CreateUnorderedAccessView(
-        tex.Get(), &uavDesc, uav.GetAddressOf())))
-        throw PCLException("failed to create RNG uav");
+    auto uav = d3d11::device.createUAV(tex, uavDesc);
 
     RNGTex_.Swap(tex);
     RNGUAV_.Swap(uav);
@@ -467,9 +435,7 @@ void Tracer::initJensenRhoDt()
     samplerState.MinLOD         = FLT_MAX;
     samplerState.MaxLOD         = FLT_MAX;
 
-    if(FAILED(d3d11::gDevice->CreateSamplerState(
-        &samplerState, jensenLinearSampler_.GetAddressOf())))
-        throw PCLException("failed to create jensen linear sampler");
+    jensenLinearSampler_ = d3d11::device.createSampler(samplerState);
 }
 
 void Tracer::setResourceBindings()

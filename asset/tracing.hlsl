@@ -4,8 +4,8 @@
 #include "jensen.hlsl"
 #include "random.hlsl"
 
-#define THREAD_GROUP_WIDTH 16
-#define THREAD_GROUP_HEIGHT 16
+#define THREAD_GROUP_WIDTH 8
+#define THREAD_GROUP_HEIGHT 4
 #define EPS 0.01
 
 cbuffer PerFrame

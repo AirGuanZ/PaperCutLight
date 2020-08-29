@@ -388,7 +388,7 @@ void PCL::displaySettingPanel()
         const auto filename = layerFileBrowser_.GetSelected();
         layerFileBrowser_.ClearSelected();
         setPaperFilename(
-            static_cast<size_t>(editPaperIdx), filename.string());
+            static_cast<size_t>(editPaperIdx), filename.u8string());
     }
 
     // light
@@ -416,7 +416,7 @@ void PCL::displaySettingPanel()
     {
         const auto filename = layerFileBrowser_.GetSelected();
         layerFileBrowser_.ClearSelected();
-        setLightFilename(filename.string());
+        setLightFilename(filename.u8string());
     }
 
     if(ImGui::SliderFloat(PCL_LANG_LIGHT_INTENSITY, &lightIntensity_, 0, 40))
@@ -744,7 +744,7 @@ void PCL::loadAllLayers(const std::vector<std::filesystem::path> &all)
     for(size_t i = 0; i < papers_.size(); ++i)
     {
         papers_[i].name = findAvailName("");
-        setPaperFilename(i, all[i].string());
+        setPaperFilename(i, all[i].u8string());
     }
 
     updateMaterial();
@@ -752,6 +752,18 @@ void PCL::loadAllLayers(const std::vector<std::filesystem::path> &all)
 
 void PCL::setPaperSize(int width, int height)
 {
+    Int2 oSize = { width, height };
+    if(width > height)
+    {
+        oSize.x = (std::min)(width, 800);
+        oSize.y = (std::max)(1, oSize.x * height / width);
+    }
+    else
+    {
+        oSize.y = (std::min)(height, 800);
+        oSize.x = (std::max)(1, oSize.y * width / height);
+    }
+
     paperSize_.x = width;
     paperSize_.y = height;
 
@@ -759,9 +771,9 @@ void PCL::setPaperSize(int width, int height)
         {
             width, height, static_cast<int>(papers_.size())
         });
-    tracer_->setOutputSize({ width, height });
-    accumulator_->setSize(width, height);
-    toneMapper_->setSize(width, height);
+    tracer_->setOutputSize(oSize);
+    accumulator_->setSize(oSize.x, oSize.y);
+    toneMapper_->setSize(oSize.x, oSize.y);
 
     for(auto &p : papers_)
     {

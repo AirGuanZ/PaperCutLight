@@ -136,8 +136,12 @@ void LayerMonitor::reloadLayer(LayerID id)
 
     try
     {
-        auto newData = agz::img::load_gray_from_file(path.string());
-        it2->second.paper = Image2D<uint8_t>(std::move(newData));
+        auto newData = agz::img::load_rgb_from_file(path.string());
+        it2->second.paper = Image2D<uint8_t>(newData.map(
+            [](const agz::math::color3b &c)
+        {
+            return static_cast<uint8_t>((c.r || c.g || c.b) ? 255 : 0);
+        }));
     }
     catch(...)
     {

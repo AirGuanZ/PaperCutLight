@@ -1,8 +1,8 @@
-# Paper Cut Light Previewer (PCLP)
+# Paper Cut Light Previewer (PCL)
 
 [Paper cut light box](https://www.google.com/search?q=paper+cut+light+box&tbm=isch) is a light box which consists of layered paper cuts. AIK, it's hard to design how it looks like before we actually make it and put LED lights behind the layers. So I write this previewer to compute the appearance of light boxes.
 
-PCLP is written with C++ and DirectX 11, so it only runs on Windows.
+PCL is written with C++ and DirectX 11, so it only runs on Windows.
 
 ## Screenshot
 

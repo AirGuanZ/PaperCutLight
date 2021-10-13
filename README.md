@@ -8,11 +8,29 @@ PCLP is written with C++ and DirectX 11, so it only runs on Windows.
 
 ![pic](./doc/0.png)
 
-## TODO
+## Usage
 
-- [ ] Paper material model verification
-- [ ] Builtin paper materials
-- [ ] User manual
+### Build From Source
+
+```powershell
+git clone --recursive https://github.com/AirGuanZ/PaperCutLight.git
+cd PaperCutLight
+mkdir build
+cd build
+cmake .. -DPCL_CN=OFF
+```
+
+* use `PCL_CN=ON/OFF` to select chinese/english version.
+
+### Download Prebuilt Binaries
+
+[Win10-64bit](https://github.com/AirGuanZ/PaperCutLight/releases)
+
+### User Manual
+
+[English Version](https://github.com/AirGuanZ/PaperCutLight/tree/master/doc/manual-en/manual.md)
+
+[简体中文](https://github.com/AirGuanZ/PaperCutLight/tree/master/doc/manual-cn/manual-cn.md)
 
 ## Reference
 

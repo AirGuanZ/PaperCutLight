@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <agz/utility/graphics_api.h>
+#include <agz-utils/graphics_api.h>
 
 #include <pcl/pcl.h>
 
@@ -12,9 +12,6 @@ void run()
     windowDesc.title = L"Paper Cut Light Designer";
 
     Window window(windowDesc, true);
-    
-    auto keyboard = window.getKeyboard();
-
     window.useDefaultRTVAndDSV();
     window.useDefaultViewport();
 

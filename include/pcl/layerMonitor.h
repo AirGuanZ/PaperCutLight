@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agz/utility/texture.h>
+#include <agz-utils/texture.h>
 #include <FileWatcher/FileWatcher.h>
 
 #include <pcl/common.h>

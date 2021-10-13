@@ -1,7 +1,7 @@
 #pragma once
 
-#include <agz/utility/graphics_api.h>
-#include <agz/utility/texture.h>
+#include <agz-utils/graphics_api.h>
+#include <agz-utils/texture.h>
 
 #define PCL_BEGIN namespace pcl {
 #define PCL_END   }

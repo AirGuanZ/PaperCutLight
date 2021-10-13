@@ -1,4 +1,4 @@
-#include <agz/utility/string.h>
+#include <agz-utils/string.h>
 
 #include <pcl/langText.h>
 #include <pcl/pcl.h>
@@ -85,6 +85,9 @@ namespace
 PCL::PCL(const Int2 &paperSize)
     : loadAllFileBrowser_(ImGuiFileBrowserFlags_MultipleSelection)
 {
+    loadAllFileBrowser_.SetTypeFilters({ ".bmp", ".jpg", ".png" });
+    layerFileBrowser_.SetTypeFilters({ ".bmp", ".jpg", ".png" });
+
     paperSize_ = paperSize;
 
     paperDistance_ = 10;
@@ -135,7 +138,7 @@ void PCL::display(const d3d11::Window &window)
         static_cast<float>(window.getClientHeight())
     });
     ImGui::Begin("PCL", nullptr, ImGuiWindowFlags_NoDecoration);
-    AGZ_SCOPE_GUARD({ ImGui::End(); });
+    AGZ_SCOPE_EXIT{ ImGui::End(); };
 
     static float sizeLeft  = 0.3f * ImGui::GetContentRegionAvailWidth();
     static float sizeRight = ImGui::GetContentRegionAvailWidth() - sizeLeft;
@@ -247,7 +250,7 @@ void PCL::displaySettingPanel()
     for(size_t i = 0; i < papers_.size(); ++i)
     {
         ImGui::PushID(int(i));
-        AGZ_SCOPE_GUARD({ ImGui::PopID(); });
+        AGZ_SCOPE_EXIT{ ImGui::PopID(); };
 
         const auto &paper = papers_[i];
 
@@ -689,7 +692,7 @@ std::string PCL::findAvailName(const std::string &name) const
 
     for(int i = 1;;)
     {
-        const std::string s =
+        std::string s =
             name +
             "(" + agz::stdstr::align_right(std::to_string(i++), 2, '0') + ")";
         if(!find(s))

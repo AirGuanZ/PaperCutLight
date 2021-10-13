@@ -1,4 +1,4 @@
-#include <agz/utility/image.h>
+#include <agz-utils/image.h>
 
 #include <pcl/layerMonitor.h>
 

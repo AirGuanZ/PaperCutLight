@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agz/utility/graphics_api.h>
+#include <agz-utils/graphics_api.h>
 
 #include <pcl/renderer/accumulator.h>
 #include <pcl/renderer/toneMapper.h>
